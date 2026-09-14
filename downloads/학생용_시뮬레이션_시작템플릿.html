@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="고급화학 시뮬레이션 수행평가용 단일 HTML 시작 템플릿">
+  <title>화학 시뮬레이션 시작 템플릿</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1930'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%234ee1c1'/%3E%3Cellipse cx='32' cy='32' rx='23' ry='10' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3Cellipse cx='32' cy='32' rx='10' ry='23' fill='none' stroke='%23ffb258' stroke-width='3' transform='rotate(32 32 32)'/%3E%3C/svg%3E">
+  <style>
+    /*
+      ================================================================
+      학생 수정 안내 — 이 파일 하나만 제출합니다.
+      1. 이 파일에서 "STUDENT_EDIT"를 검색하세요.
+      2. 제목, 학번·이름, 설명, 수식, 참고자료를 본인 주제로 바꾸세요.
+      3. 아래 JavaScript의 CONFIG와 calculateModel()을 수정하세요.
+      4. 파일을 저장한 뒤 인터넷을 끊은 상태에서도 실행해 보세요.
+      5. 파일명: 학번_시뮬레이션.html
+      ================================================================
+    */
+
+    :root {
+      --ink: #0b1930;
+      --ink-soft: #40506a;
+      --paper: #f6f8fb;
+      --panel: #ffffff;
+      --line: #dbe2eb;
+      --mint: #19a98c;
+      --mint-dark: #08765f;
+      --mint-pale: #e7faf5;
+      --orange: #f08a32;
+      --orange-pale: #fff2e7;
+      --focus: #0b6ff4;
+      --shadow: 0 18px 50px rgba(12, 29, 54, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(25, 169, 140, 0.13), transparent 28rem),
+        radial-gradient(circle at 100% 18%, rgba(240, 138, 50, 0.10), transparent 28rem),
+        var(--paper);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    button, input { font: inherit; }
+
+    button:focus-visible,
+    input:focus-visible,
+    a:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 60%, transparent);
+      outline-offset: 3px;
+    }
+
+    .topbar {
+      color: #fff;
+      background: var(--ink);
+      border-bottom: 4px solid var(--mint);
+    }
+
+    .topbar__inner,
+    main,
+    footer {
+      width: min(1180px, calc(100% - 32px));
+      margin-inline: auto;
+    }
+
+    .topbar__inner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      padding: 38px 0 30px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #78f0d6;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.7rem);
+      line-height: 1.12;
+      letter-spacing: -0.045em;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 14px 0 0;
+      color: #bdc9d9;
+      font-size: 1rem;
+    }
+
+    .identity {
+      min-width: 205px;
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .identity span {
+      display: block;
+      color: #98a8bc;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .identity strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 1.08rem;
+    }
+
+    main { padding: 28px 0 64px; }
+
+    .notice {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border: 1px solid #f7c28f;
+      border-radius: 14px;
+      background: var(--orange-pale);
+      color: #6d3d12;
+    }
+
+    .notice__mark {
+      display: grid;
+      flex: 0 0 25px;
+      width: 25px;
+      height: 25px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--orange);
+      font-weight: 900;
+    }
+
+    .notice p { margin: 0; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.5fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel__head {
+      display: flex;
+      gap: 12px;
+      align-items: start;
+      justify-content: space-between;
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2, h3 { margin: 0; letter-spacing: -0.025em; }
+    h2 { font-size: 1.27rem; }
+    h3 { font-size: 1.08rem; }
+
+    .panel__head p,
+    .section-note {
+      margin: 4px 0 0;
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+
+    .status {
+      flex: 0 0 auto;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: var(--mint-dark);
+      background: var(--mint-pale);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .controls { padding: 22px 24px 24px; }
+
+    .control + .control { margin-top: 26px; }
+
+    .control__label {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 750;
+    }
+
+    .control__value {
+      color: var(--mint-dark);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--mint);
+      cursor: pointer;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      color: #6f7d90;
+      font-size: 0.78rem;
+    }
+
+    .reset {
+      width: 100%;
+      margin-top: 28px;
+      padding: 12px 16px;
+      border: 1px solid #b9c4d2;
+      border-radius: 12px;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .reset:hover {
+      border-color: var(--mint);
+      background: var(--mint-pale);
+      transform: translateY(-1px);
+    }
+
+    .result-body { padding: 18px 24px 24px; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #f9fbfd;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      overflow-wrap: anywhere;
+      margin-top: 3px;
+      color: var(--ink);
+      font-size: 1.16rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart-wrap {
+      position: relative;
+      min-height: 360px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 340px;
+    }
+
+    .interpretation {
+      margin: 16px 0 0;
+      padding: 14px 16px;
+      border-left: 4px solid var(--orange);
+      border-radius: 0 12px 12px 0;
+      background: var(--orange-pale);
+      color: #5f3b1c;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .detail-card {
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .detail-card p { margin: 10px 0 0; }
+
+    .equation {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      border-radius: 12px;
+      color: #fff;
+      background: var(--ink);
+      font: 600 1rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .clean-list {
+      margin: 12px 0 0;
+      padding-left: 21px;
+    }
+
+    .clean-list li + li { margin-top: 6px; }
+
+    .validation {
+      overflow-x: auto;
+      margin-top: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { color: var(--ink-soft); font-size: 0.8rem; }
+
+    .pass { color: var(--mint-dark); font-weight: 800; }
+
+    .sources a { color: #0b61c8; text-underline-offset: 3px; }
+
+    footer {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0 34px;
+      color: #607086;
+      font-size: 0.85rem;
+    }
+
+    .offline {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      font-weight: 750;
+    }
+
+    .offline::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mint);
+      content: "";
+    }
+
+    @media (max-width: 820px) {
+      .topbar__inner,
+      .workspace,
+      .details { grid-template-columns: 1fr; }
+
+      .topbar__inner { align-items: start; }
+      .identity { min-width: 0; }
+      .metrics { grid-template-columns: 1fr; }
+      .chart-wrap { min-height: 310px; }
+      canvas { height: 290px; }
+    }
+
+    @media (max-width: 520px) {
+      .topbar__inner,
+      main,
+      footer { width: min(100% - 22px, 1180px); }
+
+      .topbar__inner { padding: 28px 0 24px; }
+      .panel__head, .controls, .result-body, .detail-card { padding-inline: 18px; }
+      footer { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div>
+        <p class="eyebrow">Advanced Chemistry Simulation</p>
+        <!-- STUDENT_EDIT: 작품 제목과 한 줄 설명 -->
+        <h1 id="project-title">온도에 따른 1차 반응 속도 변화</h1>
+        <p class="subtitle" id="project-subtitle">
+          Arrhenius 식과 적분 속도식을 이용해 온도와 초기 농도가 반응물 농도 변화에 미치는 영향을 탐구합니다.
+        </p>
+      </div>
+      <div class="identity" aria-label="제작자 정보">
+        <!-- STUDENT_EDIT: 학번과 이름 -->
+        <span>제작자</span>
+        <strong id="student-name">30101 홍길동</strong>
+        <span style="margin-top:10px">주제 영역</span>
+        <strong id="topic-area">화학 반응 속도</strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice" role="note">
+      <div class="notice__mark" aria-hidden="true">!</div>
+      <p><strong>현재 내용은 작동 예시입니다.</strong> 제출 전 본인의 탐구 주제, 과학 모델, 검증 결과로 모두 교체하세요.</p>
+    </div>
+
+    <div class="workspace">
+      <section class="panel" aria-labelledby="controls-heading">
+        <div class="panel__head">
+          <div>
+            <h2 id="controls-heading">탐구 조건 설정</h2>
+            <p>변인을 움직여 결과 변화를 비교하세요.</p>
+          </div>
+          <span class="status">실시간 계산</span>
+        </div>
+
+        <div class="controls">
+          <div class="control">
+            <label class="control__label" for="temperature">
+              <span id="control1-label">온도</span>
+              <span class="control__value"><output id="temperature-value">298</output> <span id="control1-unit">K</span></span>
+            </label>
+            <input id="temperature" type="range" min="273" max="373" step="1" value="298">
+            <div class="range-labels"><span>273 K</span><span>373 K</span></div>
+          </div>
+
+          <div class="control">
+            <label class="control__label" for="concentration">
+              <span id="control2-label">초기 농도</span>
+              <span class="control__value"><output id="concentration-value">1.00</output> <span id="control2-unit">mol·L⁻¹</span></span>
+            </label>
+            <input id="concentration" type="range" min="0.20" max="2.00" step="0.05" value="1.00">
+            <div class="range-labels"><span>0.20 M</span><span>2.00 M</span></div>
+          </div>
+
+          <button class="reset" id="reset-button" type="button">기본 조건으로 되돌리기</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="result-heading">
+        <div class="panel__head">
+          <div>
+            <h2 id="result-heading">결과 관찰</h2>
+            <p id="chart-description">시간에 따른 반응물 A의 농도</p>
+          </div>
+          <span class="status" id="condition-status">298 K</span>
+        </div>
+
+        <div class="result-body">
+          <div class="metrics" aria-label="계산 결과 요약">
+            <div class="metric"><span id="metric1-label">속도 상수 k</span><strong id="metric1-value">—</strong></div>
+            <div class="metric"><span id="metric2-label">반감기</span><strong id="metric2-value">—</strong></div>
+            <div class="metric"><span id="metric3-label">초기 반응 속도</span><strong id="metric3-value">—</strong></div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="chart" role="img" aria-label="시간에 따른 반응물 농도 그래프"></canvas>
+          </div>
+
+          <!-- STUDENT_EDIT: 결과 해석 문장을 본인 모델에 맞게 변경 -->
+          <p class="interpretation" id="interpretation" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+
+    <div class="details">
+      <section class="detail-card" aria-labelledby="theory-heading">
+        <h3 id="theory-heading">적용한 화학 원리</h3>
+        <!-- STUDENT_EDIT: 핵심 원리와 수식 -->
+        <p>1차 반응에서는 반응 속도가 반응물 농도에 비례합니다. 온도가 올라가면 Arrhenius 식에 따라 속도 상수가 증가합니다.</p>
+        <div class="equation" aria-label="사용한 수식">[A]ₜ = [A]₀e<sup>−kt</sup>　│　k = Ae<sup>−Eₐ/RT</sup></div>
+      </section>
+
+      <section class="detail-card" aria-labelledby="limit-heading">
+        <h3 id="limit-heading">모델의 가정과 한계</h3>
+        <!-- STUDENT_EDIT: 본인 모델의 가정과 한계 -->
+        <ul class="clean-list">
+          <li>반응은 단일 단계의 비가역 1차 반응이라고 가정합니다.</li>
+          <li>반응 중 온도와 부피가 일정하며 용액은 균일하게 혼합됩니다.</li>
+          <li>실제 반응의 용매 효과, 부반응, 측정 오차는 반영하지 않았습니다.</li>
+        </ul>
+      </section>
+
+      <section class="detail-card" aria-labelledby="validation-heading">
+        <h3 id="validation-heading">모델 검증</h3>
+        <p class="section-note">정상 조건 두 가지와 경계 조건 한 가지를 확인했습니다.</p>
+        <!-- STUDENT_EDIT: 실제 검증 자료로 교체 -->
+        <div class="validation">
+          <table>
+            <thead><tr><th>입력 조건</th><th>예상</th><th>확인 결과</th><th>판정</th></tr></thead>
+            <tbody>
+              <tr><td>298 K, 1.00 M</td><td>k = 0.0100 s⁻¹</td><td>0.0100 s⁻¹</td><td class="pass">일치</td></tr>
+              <tr><td>298 K, 2.00 M</td><td>초기 속도 2배</td><td>0.0200 M·s⁻¹</td><td class="pass">일치</td></tr>
+              <tr><td>373 K, 0.20 M</td><td>농도 음수 없음</td><td>최솟값 0 이상</td><td class="pass">정상</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="detail-card sources" aria-labelledby="source-heading">
+        <h3 id="source-heading">참고자료와 AI 활용</h3>
+        <!-- STUDENT_EDIT: 실제 사용한 출처와 AI 검토 내용을 기록 -->
+        <ul class="clean-list">
+          <li>일반화학 교과서, 「화학 반응 속도」 단원</li>
+          <li><a href="https://goldbook.iupac.org/" target="_blank" rel="noopener noreferrer">IUPAC Gold Book</a> — 용어 확인</li>
+          <li>생성형 AI로 코드 초안을 작성한 뒤, 계산값을 직접 대조하고 그래프 축·단위를 수정함</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <span>2026 고급화학 · 개인 시뮬레이션 수행평가</span>
+    <span class="offline">외부 라이브러리 없이 실행</span>
+  </footer>
+
+  <script>
+    "use strict";
+
+    /*
+      STUDENT_EDIT 1 — 가장 먼저 CONFIG를 본인 주제로 바꾸세요.
+      입력 변인은 2개를 기본으로 제공하며, 범위·단위·기본값을 수정할 수 있습니다.
+    */
+    const CONFIG = {
+      control1: { min: 273, max: 373, step: 1, defaultValue: 298, decimals: 0 },
+      control2: { min: 0.20, max: 2.00, step: 0.05, defaultValue: 1.00, decimals: 2 },
+      chart: {
+        xLabel: "시간 / s",
+        yLabel: "반응물 농도 [A] / mol·L⁻¹",
+        xMax: 300,
+        pointCount: 121
+      }
+    };
+
+    const control1 = document.querySelector("#temperature");
+    const control2 = document.querySelector("#concentration");
+    const output1 = document.querySelector("#temperature-value");
+    const output2 = document.querySelector("#concentration-value");
+    const canvas = document.querySelector("#chart");
+    const ctx = canvas.getContext("2d");
+
+    /**
+     * STUDENT_EDIT 2 — 핵심 과학 모델입니다.
+     * 아래 예시는 Arrhenius 식과 1차 적분 속도식을 사용합니다.
+     * 반드시 본인의 수식, 변수, 단위에 맞게 교체하고 검증하세요.
+     */
+    function calculateModel(temperature, initialConcentration) {
+      const gasConstant = 8.314;        // J·mol⁻¹·K⁻¹
+      const activationEnergy = 50000;   // J·mol⁻¹
+      const referenceTemperature = 298; // K
+      const referenceRateConstant = 0.0100; // s⁻¹
+
+      const exponent = (-activationEnergy / gasConstant) *
+        ((1 / temperature) - (1 / referenceTemperature));
+      const rateConstant = referenceRateConstant * Math.exp(exponent);
+      const halfLife = Math.log(2) / rateConstant;
+      const initialRate = rateConstant * initialConcentration;
+
+      const points = [];
+      for (let index = 0; index < CONFIG.chart.pointCount; index += 1) {
+        const time = CONFIG.chart.xMax * index / (CONFIG.chart.pointCount - 1);
+        const concentration = initialConcentration * Math.exp(-rateConstant * time);
+        points.push({ x: time, y: Math.max(0, concentration) });
+      }
+
+      return {
+        points,
+        yMax: Math.max(0.1, initialConcentration),
+        metric1: `${formatNumber(rateConstant, 4)} s⁻¹`,
+        metric2: `${formatNumber(halfLife, 1)} s`,
+        metric3: `${formatNumber(initialRate, 4)} mol·L⁻¹·s⁻¹`,
+        interpretation: temperature > referenceTemperature
+          ? `기준 온도 298 K보다 ${temperature - referenceTemperature} K 높아 속도 상수가 커지고, 반응물 농도가 더 빠르게 감소합니다.`
+          : temperature < referenceTemperature
+            ? `기준 온도 298 K보다 ${referenceTemperature - temperature} K 낮아 속도 상수가 작아지고, 반응물 농도가 더 천천히 감소합니다.`
+            : `기준 온도 298 K에서 계산했습니다. 초기 농도를 바꾸면 초기 속도는 변하지만 1차 반응의 반감기는 변하지 않습니다.`
+      };
+    }
+
+    function formatNumber(value, maximumFractionDigits) {
+      return new Intl.NumberFormat("ko-KR", {
+        maximumFractionDigits,
+        minimumFractionDigits: Math.min(2, maximumFractionDigits)
+      }).format(value);
+    }
+
+    function setControlAttributes(input, config) {
+      input.min = config.min;
+      input.max = config.max;
+      input.step = config.step;
+      input.value = config.defaultValue;
+    }
+
+    function resizeCanvas() {
+      const cssWidth = canvas.clientWidth;
+      const cssHeight = canvas.clientHeight;
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(cssWidth * ratio);
+      canvas.height = Math.round(cssHeight * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function drawChart(points, yMax) {
+      resizeCanvas();
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const padding = { top: 22, right: 22, bottom: 58, left: 72 };
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textBaseline = "middle";
+
+      ctx.strokeStyle = "#e3e8ef";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#66758a";
+
+      for (let index = 0; index <= 5; index += 1) {
+        const x = padding.left + plotWidth * index / 5;
+        const y = padding.top + plotHeight * index / 5;
+
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, padding.top + plotHeight);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + plotWidth, y);
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.fillText(formatNumber(CONFIG.chart.xMax * index / 5, 0), x, height - 35);
+
+        ctx.textAlign = "right";
+        ctx.fillText(formatNumber(yMax * (5 - index) / 5, 2), padding.left - 10, y);
+      }
+
+      ctx.strokeStyle = "#0b1930";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, padding.top);
+      ctx.lineTo(padding.left, padding.top + plotHeight);
+      ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#19a98c";
+      ctx.lineWidth = 4;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = padding.left + (point.x / CONFIG.chart.xMax) * plotWidth;
+        const y = padding.top + (1 - point.y / yMax) * plotHeight;
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "#0b1930";
+      ctx.font = '600 13px system-ui, sans-serif';
+      ctx.textAlign = "center";
+      ctx.fillText(CONFIG.chart.xLabel, padding.left + plotWidth / 2, height - 10);
+
+      ctx.save();
+      ctx.translate(17, padding.top + plotHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(CONFIG.chart.yLabel, 0, 0);
+      ctx.restore();
+    }
+
+    function updateSimulation() {
+      const value1 = Number(control1.value);
+      const value2 = Number(control2.value);
+      output1.value = value1.toFixed(CONFIG.control1.decimals);
+      output2.value = value2.toFixed(CONFIG.control2.decimals);
+
+      const result = calculateModel(value1, value2);
+      document.querySelector("#metric1-value").textContent = result.metric1;
+      document.querySelector("#metric2-value").textContent = result.metric2;
+      document.querySelector("#metric3-value").textContent = result.metric3;
+      document.querySelector("#condition-status").textContent = `${value1.toFixed(0)} K`;
+      document.querySelector("#interpretation").textContent = result.interpretation;
+      drawChart(result.points, result.yMax);
+    }
+
+    function resetSimulation() {
+      control1.value = CONFIG.control1.defaultValue;
+      control2.value = CONFIG.control2.defaultValue;
+      updateSimulation();
+    }
+
+    setControlAttributes(control1, CONFIG.control1);
+    setControlAttributes(control2, CONFIG.control2);
+    control1.addEventListener("input", updateSimulation);
+    control2.addEventListener("input", updateSimulation);
+    document.querySelector("#reset-button").addEventListener("click", resetSimulation);
+    window.addEventListener("resize", updateSimulation);
+    updateSimulation();
+  </script>
+</body>
+</html>
