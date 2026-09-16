@@ -24,6 +24,7 @@ const WORK_IDS = [
   "faraday-electrolysis",
   "bohr-spectrum",
   "corrosion-ecl",
+  "rail-cathodic-protection",
   "limiting-reagent"
 ];
 
