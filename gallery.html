@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="2026학년도 고급화학 수강생이 제작한 인터랙티브 화학 시뮬레이션 작품 갤러리">
+  <meta name="theme-color" content="#071a2e">
+  <title>학생 작품 갤러리 · 2026 고급화학</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23071a2e'/%3E%3Cpath d='M23 9h18M27 9v15L15 45a7 7 0 0 0 6 10h22a7 7 0 0 0 6-10L37 24V9' fill='none' stroke='%23a9ed5b' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M20 41h24' stroke='%236de2e8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #071a2e;
+      --ink-2: #0d2946;
+      --paper: #f5f8fb;
+      --white: #fff;
+      --line: #d8e3ec;
+      --muted: #607286;
+      --cyan: #22b8c7;
+      --cyan-soft: #dff7f8;
+      --lime: #a9ed5b;
+      --blue: #2864dc;
+      --orange: #f59e42;
+      --heart: #e84f75;
+      --shadow: 0 18px 48px rgba(7, 26, 46, .1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(7, 26, 46, .028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(7, 26, 46, .028) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .skip-link {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--blue);
+      transform: translateY(-160%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid rgba(216, 227, 236, .8);
+      background: rgba(245, 248, 251, .92);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar-inner {
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 850;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 12px;
+      background: var(--lime);
+      box-shadow: 0 8px 18px rgba(124, 183, 57, .22);
+    }
+    .brand-mark svg { width: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 11px;
+      border-radius: 10px;
+      color: #38516a;
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 750;
+    }
+    .back-link:hover, .back-link:focus-visible { color: var(--ink); background: #fff; outline: none; }
+
+    .hero { position: relative; overflow: hidden; padding: 68px 0 42px; }
+    .hero::before {
+      content: "";
+      width: 520px;
+      height: 520px;
+      position: absolute;
+      top: -300px;
+      right: -90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34,184,199,.24), rgba(34,184,199,0) 68%);
+      pointer-events: none;
+    }
+
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 36px; align-items: end; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: #176975;
+      font-size: .84rem;
+      font-weight: 900;
+      letter-spacing: .09em;
+    }
+    .eyebrow::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 5px var(--cyan-soft); }
+
+    h1 { margin: 0; font-size: clamp(2.7rem, 6vw, 5.2rem); line-height: 1.04; letter-spacing: -.055em; font-weight: 920; }
+    .hero-copy { max-width: 720px; margin: 20px 0 0; color: #415971; font-size: 1.05rem; }
+
+    .hero-stat {
+      min-width: 170px;
+      padding: 22px 24px;
+      border-radius: 22px;
+      color: #fff;
+      background: var(--ink);
+      box-shadow: var(--shadow);
+    }
+    .hero-stat strong { display: block; color: var(--lime); font-size: 2.7rem; line-height: 1; }
+    .hero-stat span { display: block; margin-top: 9px; color: #aec2d3; font-size: .84rem; font-weight: 750; }
+
+    .notice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 14px 16px;
+      border: 1px solid #b9e7ea;
+      border-radius: 14px;
+      color: #245966;
+      background: rgba(223,247,248,.78);
+      font-size: .9rem;
+    }
+    .notice b { color: var(--ink); }
+    .notice-icon { width: 26px; height: 26px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: var(--ink); background: var(--lime); font-weight: 950; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 10px 28px rgba(7,26,46,.06);
+    }
+
+    .filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+    .filter {
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #4b6278;
+      background: #fff;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 800;
+    }
+    .filter:hover, .filter:focus-visible { border-color: #9db6c9; outline: none; }
+    .filter.is-active { border-color: var(--ink); color: #fff; background: var(--ink); }
+
+    .results-head { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+    .results-head h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
+    .result-count { color: var(--muted); font-size: .87rem; font-weight: 750; }
+
+    .gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding-bottom: 82px; }
+
+    .work-card {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(7,26,46,.055);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .work-card:hover { transform: translateY(-4px); border-color: #b9cbd9; box-shadow: 0 18px 42px rgba(7,26,46,.11); }
+
+    .work-preview {
+      height: 148px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      color: #dff7f8;
+      background: linear-gradient(145deg, var(--ink), #103a58);
+    }
+    .work-preview::before, .work-preview::after { content: ""; position: absolute; border: 1px solid rgba(109,226,232,.22); border-radius: 50%; }
+    .work-preview::before { width: 210px; height: 78px; transform: rotate(28deg); }
+    .work-preview::after { width: 190px; height: 68px; transform: rotate(-31deg); }
+    .preview-dot { width: 12px; height: 12px; position: absolute; top: 25px; right: 30px; border-radius: 50%; background: var(--lime); box-shadow: -150px 84px 0 var(--cyan); }
+    .formula { position: relative; z-index: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(255,255,255,.08); font: 800 1rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; backdrop-filter: blur(6px); }
+
+    .work-card[data-category="bond"] .work-preview { background: linear-gradient(145deg, #11233f, #27406a); }
+    .work-card[data-category="reaction"] .work-preview { background: linear-gradient(145deg, #092f34, #12606b); }
+    .work-card[data-category="electro"] .work-preview { background: linear-gradient(145deg, #19224a, #314a92); }
+    .work-card[data-category="energy"] .work-preview { background: linear-gradient(145deg, #3c1f29, #824735); }
+
+    .work-body { padding: 20px; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .category { color: #16808c; font-size: .74rem; font-weight: 900; letter-spacing: .04em; }
+    .student { color: #708297; font: 750 .75rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .work-title { min-height: 3em; margin: 0; font-size: 1.08rem; line-height: 1.45; letter-spacing: -.02em; }
+    .work-desc { min-height: 4.4em; margin: 10px 0 18px; color: var(--muted); font-size: .84rem; line-height: 1.55; }
+    .card-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; }
+    .open-work {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 0 13px;
+      border-radius: 11px;
+      color: #fff;
+      background: var(--ink);
+      text-decoration: none;
+      font-size: .86rem;
+      font-weight: 850;
+    }
+    .open-work:hover, .open-work:focus-visible { color: var(--ink); background: var(--lime); outline: none; }
+    .like-button {
+      min-width: 76px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid #e7ccd5;
+      border-radius: 11px;
+      color: #8a3c56;
+      background: #fff7fa;
+      cursor: pointer;
+      font-weight: 850;
+      transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .like-button:hover, .like-button:focus-visible { border-color: var(--heart); color: var(--heart); outline: none; }
+    .like-button:active { transform: scale(.97); }
+    .like-button.is-liked { border-color: var(--heart); color: #fff; background: var(--heart); }
+    .like-button:disabled { cursor: wait; opacity: .7; }
+    .heart { font-size: 1.08rem; line-height: 1; }
+    .like-count { min-width: 1.4em; font-size: .82rem; line-height: 1; text-align: center; }
+
+    .empty { display: none; margin: 20px 0 80px; padding: 42px 20px; border: 1px dashed #b8c8d5; border-radius: 18px; color: var(--muted); text-align: center; background: rgba(255,255,255,.72); }
+    .empty.is-visible { display: block; }
+
+    footer { padding: 30px 0 42px; color: #65798e; font-size: .85rem; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 20px; padding-top: 22px; border-top: 1px solid var(--line); }
+
+    @media (max-width: 920px) {
+      .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { justify-content: center; }
+    }
+    @media (max-width: 640px) {
+      .shell { width: min(100% - 24px, 1180px); }
+      .brand span:last-child { display: none; }
+      .hero { padding-top: 42px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-stat { min-width: 0; display: flex; align-items: center; gap: 12px; }
+      .hero-stat span { margin: 0; }
+      .toolbar { padding: 12px; }
+      .gallery-grid { grid-template-columns: 1fr; }
+      .work-title, .work-desc { min-height: 0; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#gallery">작품 목록으로 바로가기</a>
+
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="고급화학 수행평가 첫 화면으로 이동">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 3h6"></path><path d="M10 3v6.2l-5.2 8.6A2.1 2.1 0 0 0 6.6 21h10.8a2.1 2.1 0 0 0 1.8-3.2L14 9.2V3"></path><path d="M7.3 15h9.4"></path></svg>
+        </span>
+        <span>2026 고급화학 · 학생 작품 갤러리</span>
+      </a>
+      <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 수행평가 안내</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <p class="eyebrow">STUDENT SIMULATION GALLERY</p>
+          <h1>화학을 이해하는<br>스물한 가지 방법.</h1>
+          <p class="hero-copy">각 작품은 일반화학의 개념을 조절 가능한 변수와 시각적 결과로 표현한 학생 제작 HTML 시뮬레이션입니다.</p>
+        </div>
+        <div class="hero-stat" aria-label="공개 작품 수 21개">
+          <strong>21</strong>
+          <span>공개 작품 · 개인별 탐구</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="gallery" aria-labelledby="gallery-title">
+      <div class="notice">
+        <span class="notice-icon" aria-hidden="true">♥</span>
+        <span><b>작품 열기</b>로 시뮬레이션을 체험하고, 인상 깊은 작품에는 하트를 눌러 주세요. 하트는 같은 브라우저에서 작품별 한 번만 누를 수 있습니다.</span>
+      </div>
+
+      <div class="toolbar" aria-label="주제별 작품 보기">
+        <div class="filters" role="group" aria-label="주제 분야 선택">
+          <button class="filter is-active" type="button" data-filter="all">전체</button>
+          <button class="filter" type="button" data-filter="gas">기체·용액</button>
+          <button class="filter" type="button" data-filter="bond">결합·분자</button>
+          <button class="filter" type="button" data-filter="reaction">반응·속도</button>
+          <button class="filter" type="button" data-filter="electro">전기화학</button>
+          <button class="filter" type="button" data-filter="energy">에너지·원자</button>
+        </div>
+      </div>
+
+      <div class="results-head">
+        <h2 id="gallery-title">학생 작품</h2>
+        <span class="result-count" id="result-count" aria-live="polite">21개 작품</span>
+      </div>
+      <div class="gallery-grid" id="gallery-grid"></div>
+      <div class="empty" id="empty">검색 조건에 맞는 작품이 없습니다.</div>
+      <noscript><div class="empty is-visible">작품 목록을 보려면 브라우저에서 JavaScript를 허용해 주세요.</div></noscript>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>2026학년도 3학년 고급화학</span>
+      <span>학생이 직접 설계하고 제작한 인터랙티브 화학 모델</span>
+    </div>
+  </footer>
+
+  <script>
+    "use strict";
+
+    const LIKES_API_URL = "https://script.google.com/macros/s/AKfycbyi7ZxFiU00VCc-DhBODZO_7Euob2e6N-uuvnPoFvu-kuSP5WFCndkif8uRKQ1gmE93vw/exec";
+    const LIKED_STORAGE_KEY = "advanced-chemistry-gallery-liked-v1";
+
+    const categoryNames = {
+      gas: "기체·용액",
+      bond: "결합·분자",
+      reaction: "반응·속도",
+      electro: "전기화학",
+      energy: "에너지·원자"
+    };
+
+    const works = [
+      { slug: "arrhenius-rate", alias: "활성화 에너지 탐구자", category: "reaction", title: "온도와 활성화 에너지가 반응 속도에 미치는 영향", formula: "k = Ae⁻ᴱᵃ⁄ᴿᵀ", desc: "온도와 활성화 에너지를 바꾸며 속도 상수와 1차 반응 농도 변화를 관찰합니다." },
+      { slug: "sequential-reaction", alias: "अपव्ययित प्रयास लोल।", category: "reaction", title: "연속 반응의 단계별 물질량 변화", formula: "A → B → C", desc: "단계별 전환율이 중간체 축적과 최종 생성물 수득률에 미치는 영향을 탐구합니다." },
+      { slug: "ideal-gas-pv", alias: "기체 탐구자", category: "gas", title: "이상 기체의 PV 상태 변화", formula: "PV = nRT", desc: "온도·부피·몰수 변화에 따른 압력과 P–V 상태점의 이동을 확인합니다." },
+      { slug: "vsepr-3d", alias: "VSEPR 탐구자", category: "bond", title: "VSEPR 모형에 따른 분자 구조", formula: "SN = BP + LP", desc: "공유·비공유 전자쌍을 조절해 분자 모양과 결합각을 3차원으로 비교합니다." },
+      { slug: "nernst-cell", alias: "연세대학교 27학번", category: "electro", title: "농도와 전지 전위의 관계", formula: "E = E° − RT/nF lnQ", desc: "다니엘 전지의 이온 농도에 따른 전위와 자유 에너지 변화를 계산합니다." },
+      { slug: "bond-length", alias: "이세계 화학자", category: "bond", title: "결합 차수와 원자 크기에 따른 결합 길이·세기", formula: "r = 2R − c(n−1)", desc: "공유결합 반지름과 결합 차수에 따른 결합 길이·에너지의 경향을 살펴봅니다." },
+      { slug: "hess-law", alias: "프리티걸", category: "energy", title: "헤스 법칙 반응 엔탈피 계산", formula: "ΔH = ΣaᵢΔHᵢ", desc: "반응의 방향과 계수 배율을 조작해 엔탈피의 경로 독립성을 확인합니다." },
+      { slug: "lennard-jones", alias: "Lennard–Jones 탐구자", category: "bond", title: "Lennard–Jones 퍼텐셜과 입자 간 상호작용", formula: "V(r) = 4ε[(σ/r)¹²−(σ/r)⁶]", desc: "입자 크기·퍼텐셜 우물·거리를 바꾸며 인력과 반발력의 균형을 탐구합니다." },
+      { slug: "henry-law", alias: "JJJ", category: "gas", title: "기체의 용해도와 헨리 법칙", formula: "C = kH·P", desc: "기체의 부분압력과 헨리 상수가 용해도에 미치는 영향을 그래프로 표현합니다." },
+      { slug: "nonideal-solution", alias: "용액 탐구자", category: "gas", title: "비이상 용액의 증기 압력 편차", formula: "Pᵢ = γᵢxᵢPᵢ°", desc: "몰분율과 활동도 계수를 바꾸며 이상 용액 기준선과 실제 증기압을 비교합니다." },
+      { slug: "vsepr-angle", alias: "훈주", category: "bond", title: "VSEPR 분자 기하와 결합각 변화", formula: "LP–LP > LP–BP > BP–BP", desc: "전자쌍 반발 관계를 바탕으로 전자 영역 기하와 실제 분자 기하를 관찰합니다." },
+      { slug: "arrhenius-plot", alias: "반응속도 마스터", category: "reaction", title: "온도와 활성화 에너지에 따른 속도 상수", formula: "ln k = −Ea/RT + lnA", desc: "아레니우스 식과 1/T–ln k 그래프를 통해 반응 속도 상수의 변화를 분석합니다." },
+      { slug: "reaction-order", alias: "ㅂㅈㅁ", category: "reaction", title: "반응 차수와 초기 속도", formula: "v = k[A]ᵐ[B]ⁿ", desc: "반응물 농도와 반응 차수를 바꾸며 초기 속도의 배수 효과를 비교합니다." },
+      { slug: "vsepr-geometry", alias: "화학이 싫은 화학자", category: "bond", title: "VSEPR 분자 기하 구조와 결합각", formula: "SN = BP + LP", desc: "전자 영역 기하와 분자 모양을 구분하고 3D 투영으로 구조를 시각화합니다." },
+      { slug: "real-gas", alias: "저세계 화학자", category: "gas", title: "실제 기체와 이상 기체의 압력 비교", formula: "P = nRT/(V−nb) − an²/V²", desc: "반데르발스 상수와 상태 변수를 조절해 이상 기체와 실제 기체의 차이를 봅니다." },
+      { slug: "graham-effusion", alias: "큐티용정", category: "gas", title: "기체 분출 속도와 몰질량 역산", formula: "v₁/v₂ = √(M₂/M₁)", desc: "그레이엄 법칙으로 두 기체의 분출 속도를 비교하고 미지 몰질량을 추론합니다." },
+      { slug: "radioactive-decay", alias: "핵화학 탐구자", category: "energy", title: "방사성 붕괴와 반감기", formula: "N = N₀(1/2)ᵗ⁄ᵗ½", desc: "초기 핵종 수·반감기·시간을 조절해 지수적 붕괴 과정을 관찰합니다." },
+      { slug: "faraday-electrolysis", alias: "ㅇㅇ", category: "electro", title: "전기분해와 구리 석출량", formula: "m = MIt/nF", desc: "전류와 통전 시간이 패러데이 법칙에 따른 구리 석출 질량에 미치는 영향을 봅니다." },
+      { slug: "bohr-spectrum", alias: "선 스펙트럼 탐구자", category: "energy", title: "수소 원자의 전이와 선 스펙트럼", formula: "Eₙ = −13.6/n² eV", desc: "보어 모형의 에너지 준위를 선택해 광자의 에너지와 스펙트럼 파장을 계산합니다." },
+      { slug: "corrosion-ecl", alias: "전기화학 탐구자", category: "electro", title: "역갈바니 센서 발광 임계 조건", formula: "I = (Ecell−Vth)/R", desc: "갈바니 전위·문턱 전압·저항의 관계로 전기화학발광 임계 조건을 모델링합니다." },
+      { slug: "limiting-reagent", alias: "해피", category: "reaction", title: "제한 반응물과 생성량 화학량론", formula: "N₂ + 3H₂ → 2NH₃", desc: "초기 몰수와 반응 계수비로 제한 반응물·생성량·남은 반응물을 계산합니다." }
+    ];
+
+    const grid = document.querySelector("#gallery-grid");
+    const count = document.querySelector("#result-count");
+    const empty = document.querySelector("#empty");
+    const filterButtons = [...document.querySelectorAll(".filter")];
+    const likeCounts = Object.fromEntries(works.map(work => [work.slug, 0]));
+    const likedWorks = new Set(JSON.parse(localStorage.getItem(LIKED_STORAGE_KEY) || "[]"));
+    let activeFilter = "all";
+
+    function jsonp(params) {
+      return new Promise((resolve, reject) => {
+        if (!LIKES_API_URL) {
+          reject(new Error("좋아요 저장소가 아직 연결되지 않았습니다."));
+          return;
+        }
+
+        const callbackName = `chemLikes_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        const timeout = window.setTimeout(() => cleanup(new Error("좋아요 서버 응답이 지연되고 있습니다.")), 10000);
+
+        function cleanup(error, data) {
+          window.clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+          error ? reject(error) : resolve(data);
+        }
+
+        window[callbackName] = data => cleanup(null, data);
+        script.onerror = () => cleanup(new Error("좋아요 서버에 연결할 수 없습니다."));
+        const query = new URLSearchParams({ ...params, callback: callbackName, t: Date.now() });
+        script.src = `${LIKES_API_URL}?${query}`;
+        document.head.append(script);
+      });
+    }
+
+    function saveLikedWorks() {
+      localStorage.setItem(LIKED_STORAGE_KEY, JSON.stringify([...likedWorks]));
+    }
+
+    function updateLikeButtons(slug) {
+      document.querySelectorAll(`[data-like-slug="${slug}"]`).forEach(button => {
+        const liked = likedWorks.has(slug);
+        button.classList.toggle("is-liked", liked);
+        button.setAttribute("aria-pressed", String(liked));
+        button.title = liked ? "이 브라우저에서 이미 좋아요를 눌렀습니다" : "이 작품에 좋아요";
+        button.querySelector(".heart").textContent = liked ? "♥" : "♡";
+        button.querySelector(".like-count").textContent = String(likeCounts[slug] ?? 0);
+      });
+    }
+
+    async function loadLikeCounts() {
+      if (!LIKES_API_URL) return;
+      try {
+        const result = await jsonp({ action: "counts" });
+        if (!result.ok) throw new Error(result.error || "좋아요 수를 불러오지 못했습니다.");
+        works.forEach(work => { likeCounts[work.slug] = Number(result.counts?.[work.slug] || 0); });
+        document.querySelectorAll(".like-button").forEach(button => updateLikeButtons(button.dataset.likeSlug));
+      } catch (error) {
+        console.warn(error.message);
+      }
+    }
+
+    async function addLike(slug, button) {
+      if (likedWorks.has(slug)) return;
+      if (!LIKES_API_URL) {
+        window.alert("공용 좋아요 저장소 연결을 준비하고 있습니다.");
+        return;
+      }
+
+      button.disabled = true;
+      try {
+        const result = await jsonp({ action: "like", slug });
+        if (!result.ok) throw new Error(result.error || "좋아요를 저장하지 못했습니다.");
+        likeCounts[slug] = Number(result.count || 0);
+        likedWorks.add(slug);
+        saveLikedWorks();
+        updateLikeButtons(slug);
+      } catch (error) {
+        window.alert(error.message);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function createCard(work) {
+      const article = document.createElement("article");
+      article.className = "work-card";
+      article.dataset.category = work.category;
+      article.dataset.search = `${work.alias} ${work.title} ${categoryNames[work.category]}`.toLocaleLowerCase("ko-KR");
+
+      const preview = document.createElement("div");
+      preview.className = "work-preview";
+      preview.setAttribute("aria-hidden", "true");
+      const dot = document.createElement("span");
+      dot.className = "preview-dot";
+      const formula = document.createElement("span");
+      formula.className = "formula";
+      formula.textContent = work.formula;
+      preview.append(dot, formula);
+
+      const body = document.createElement("div");
+      body.className = "work-body";
+      const meta = document.createElement("div");
+      meta.className = "card-meta";
+      const category = document.createElement("span");
+      category.className = "category";
+      category.textContent = categoryNames[work.category];
+      const student = document.createElement("span");
+      student.className = "student";
+      student.textContent = `공개명 · ${work.alias}`;
+      meta.append(category, student);
+
+      const title = document.createElement("h3");
+      title.className = "work-title";
+      title.textContent = work.title;
+      const desc = document.createElement("p");
+      desc.className = "work-desc";
+      desc.textContent = work.desc;
+      const link = document.createElement("a");
+      link.className = "open-work";
+      link.href = `works/${work.slug}.html`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.innerHTML = "<span>작품 열기</span><span aria-hidden=\"true\">↗</span>";
+      link.setAttribute("aria-label", `${work.alias}의 ${work.title} 작품 새 탭에서 열기`);
+
+      const actions = document.createElement("div");
+      actions.className = "card-actions";
+      const like = document.createElement("button");
+      like.className = "like-button";
+      like.type = "button";
+      like.dataset.likeSlug = work.slug;
+      like.setAttribute("aria-label", `${work.title} 작품에 좋아요`);
+      like.innerHTML = `<span class="heart" aria-hidden="true">${likedWorks.has(work.slug) ? "♥" : "♡"}</span><span class="like-count">${likeCounts[work.slug]}</span>`;
+      like.classList.toggle("is-liked", likedWorks.has(work.slug));
+      like.setAttribute("aria-pressed", String(likedWorks.has(work.slug)));
+      like.addEventListener("click", () => addLike(work.slug, like));
+      actions.append(link, like);
+
+      body.append(meta, title, desc, actions);
+      article.append(preview, body);
+      return article;
+    }
+
+    function render() {
+      const visible = works.filter(work => {
+        return activeFilter === "all" || work.category === activeFilter;
+      });
+
+      grid.replaceChildren(...visible.map(createCard));
+      count.textContent = `${visible.length}개 작품`;
+      empty.classList.toggle("is-visible", visible.length === 0);
+    }
+
+    filterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        filterButtons.forEach(item => item.classList.toggle("is-active", item === button));
+        render();
+      });
+    });
+
+    render();
+    loadLikeCounts();
+  </script>
+</body>
+</html>
