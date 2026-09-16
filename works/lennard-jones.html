@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고급화학 수행평가 - Lennard-Jones 퍼텐셜 시뮬레이션</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --accent-repulsive: #ef4444;
+            --accent-attractive: #10b981;
+            --accent-equilibrium: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        .author-badge {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            header {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Control Panel Styles */
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .control-label span.unit {
+            color: var(--text-sub);
+            font-weight: normal;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #cbd5e1;
+            outline: none;
+            accent-color: var(--primary);
+        }
+
+        /* Value Display Boxes */
+        .data-display-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .data-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .data-box .title {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+        }
+
+        .data-box .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Canvas Displays */
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: block;
+        }
+
+        /* Theory & Report Section */
+        .theory-section {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .theory-section h3 {
+            font-size: 1rem;
+            color: var(--primary);
+            margin: 12px 0 6px 0;
+        }
+
+        .theory-section ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-repulsive { background: #fee2e2; color: #991b1b; }
+        .badge-attractive { background: #d1fae5; color: #065f46; }
+        .badge-equilibrium { background: #ede9fe; color: #5b21b6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Lennard-Jones 퍼텐셜과 입자 간 상호작용 시뮬레이션</h1>
+            <p>고급화학 수행평가 탐구 | 두 무전하 비극성 입자 사이의 인력·반발력 및 평형 결합 거리 분석</p>
+        </div>
+        <div class="author-badge">
+            공개명: Lennard–Jones 탐구자
+        </div>
+    </header>
+
+    <div class="grid-layout">
+        <div class="left-panel">
+            <div class="card">
+                <div class="card-title">변수 조작 패널</div>
+                
+                <!-- Sigma Control -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>입자 충돌 지름 (&sigma;)</span>
+                        <span id="sigma-val">0.34 nm</span>
+                    </div>
+                    <input type="range" id="sigma" min="0.10" max="0.80" step="0.01" value="0.34">
+                </div>
+
+                <!-- Epsilon Control -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>퍼텐셜 우물 깊이 (&epsilon;)</span>
+                        <span id="epsilon-val">1.00 kJ/mol</span>
+                    </div>
+                    <input type="range" id="epsilon" min="0.10" max="5.00" step="0.10" value="1.00">
+                </div>
+
+                <!-- Distance Control -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>입자 간 거리 (r)</span>
+                        <span id="r-val">0.40 nm</span>
+                    </div>
+                    <input type="range" id="r-dist" min="0.15" max="1.50" step="0.005" value="0.40">
+                </div>
+
+                <!-- Real-time Readouts -->
+                <div class="data-display-grid">
+                    <div class="data-box">
+                        <div class="title">평형 거리 (r<sub>m</sub>)</div>
+                        <div class="value" id="rm-display">0.38 nm</div>
+                    </div>
+                    <div class="data-box">
+                        <div class="title">퍼텐셜 에너지 V(r)</div>
+                        <div class="value" id="vr-display">-0.88 kJ/mol</div>
+                    </div>
+                </div>
+
+                <div class="data-display-grid">
+                    <div class="data-box" style="grid-column: span 2;">
+                        <div class="title">상호작용 상태</div>
+                        <div class="value" id="state-display" style="font-size: 0.95rem;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theory Summary Card -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-title">과학적 모델 및 일관성 검토</div>
+                <div class="theory-section">
+                    <h3>1. 모델 수식</h3>
+                    <p>$$V(r) = 4\epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^6 \right]$$</p>
+                    
+                    <h3>2. 물리적 변수 및 단위</h3>
+                    <ul>
+                        <li><b>r:</b> 입자 핵간 거리 ($\text{nm}$)</li>
+                        <li><b>&sigma;:</b> $V(r)=0$이 되는 거리 ($\text{nm}$)</li>
+                        <li><b>&epsilon;:</b> 최소 퍼텐셜 우물 깊이 ($\text{kJ/mol}$)</li>
+                        <li><b>r<sub>m</sub>:</b> 평형 결합 거리 ($2^{1/6}\sigma \approx 1.122\sigma$)</li>
+                    </ul>
+
+                    <h3>3. 모델 가정 및 한계</h3>
+                    <ul>
+                        <li>구형 대칭인 두 비극성 입자 간 상호작용</li>
+                        <li>$(\sigma/r)^{12}$: 파울리 배타 원리에 의한 반발력</li>
+                        <li>$(\sigma/r)^6$: 분산력(유도 쌍극자)에 의한 인력</li>
+                        <li>$r \to 0$ 조건에서의 양자역학적 붕괴는 수치적 발산 제어로 처리</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <!-- Canvas 1: Interactive Particle View -->
+            <div class="card">
+                <div class="card-title">
+                    <span>1. 2차원 입자 상호작용 및 힘 시각화</span>
+                    <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-sub);">오른쪽 입자를 마우스로 드래그할 수 있습니다.</span>
+                </div>
+                <canvas id="particleCanvas" height="220"></canvas>
+            </div>
+
+            <!-- Canvas 2: Potential Energy Curve -->
+            <div class="card">
+                <div class="card-title">
+                    <span>2. Lennard-Jones 퍼텐셜 에너지 곡선</span>
+                    <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-sub);">그래프를 클릭하여 거리를 변경할 수 있습니다.</span>
+                </div>
+                <canvas id="graphCanvas" height="380"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        sigma: 0.34,     // 충돌 지름 (nm)
+        epsilon: 1.00,   // 퍼텐셜 우물 깊이 (kJ/mol)
+        r: 0.40,         // 현재 입자 간 거리 (nm)
+        rMinLimit: 0.15, // slider min limit
+        rMaxLimit: 1.50, // slider max limit
+        vMaxCap: 20.0    // 그래프 표현용 퍼텐셜 에너지 상한선
+    };
+
+    // DOM Elements
+    const sigmaInput = document.getElementById('sigma');
+    const epsilonInput = document.getElementById('epsilon');
+    const rInput = document.getElementById('r-dist');
+
+    const sigmaValDisplay = document.getElementById('sigma-val');
+    const epsilonValDisplay = document.getElementById('epsilon-val');
+    const rValDisplay = document.getElementById('r-val');
+
+    const rmDisplay = document.getElementById('rm-display');
+    const vrDisplay = document.getElementById('vr-display');
+    const stateDisplay = document.getElementById('state-display');
+
+    const particleCanvas = document.getElementById('particleCanvas');
+    const pCtx = particleCanvas.getContext('2d');
+
+    const graphCanvas = document.getElementById('graphCanvas');
+    const gCtx = graphCanvas.getContext('2d');
+
+    function calcEquilibriumDistance(sigma) {
+        return Math.pow(2, 1/6) * sigma;
+    }
+
+    function calcLJPotential(r, sigma, epsilon) {
+        if (r <= 0.01) return state.vMaxCap;
+        
+        const ratio = sigma / r;
+        const ratio6 = Math.pow(ratio, 6);
+        const ratio12 = ratio6 * ratio6;
+        
+        const v = 4 * epsilon * (ratio12 - ratio6);
+        
+        return isNaN(v) || v > state.vMaxCap ? state.vMaxCap : v;
+    }
+
+    function updateStateFromInputs() {
+        state.sigma = parseFloat(sigmaInput.value);
+        state.epsilon = parseFloat(epsilonInput.value);
+        state.r = parseFloat(rInput.value);
+
+        sigmaValDisplay.textContent = `${state.sigma.toFixed(2)} nm`;
+        epsilonValDisplay.textContent = `${state.epsilon.toFixed(2)} kJ/mol`;
+        rValDisplay.textContent = `${state.r.toFixed(3)} nm`;
+
+        const rm = calcEquilibriumDistance(state.sigma);
+        const vr = calcLJPotential(state.r, state.sigma, state.epsilon);
+
+        rmDisplay.textContent = `${rm.toFixed(3)} nm`;
+        
+        if (vr >= state.vMaxCap) {
+            vrDisplay.textContent = `> +${state.vMaxCap.toFixed(1)} kJ/mol`;
+        } else {
+            vrDisplay.textContent = `${vr.toFixed(2)} kJ/mol`;
+        }
+
+        const diff = state.r - rm;
+        if (Math.abs(diff) < 0.008) {
+            stateDisplay.innerHTML = `<span class="badge badge-equilibrium">평형 상태 (반발력 = 인력, V = -${state.epsilon.toFixed(2)})</span>`;
+        } else if (state.r < rm) {
+            stateDisplay.innerHTML = `<span class="badge badge-repulsive">주요 작용: 전자구름 겹침 반발력 (Repulsive)</span>`;
+        } else {
+            stateDisplay.innerHTML = `<span class="badge badge-attractive">주요 작용: 분산력/유도쌍극자 인력 (Attractive)</span>`;
+        }
+
+        render();
+    }
+
+    function drawParticles() {
+        const width = particleCanvas.width;
+        const height = particleCanvas.height;
+        pCtx.clearRect(0, 0, width, height);
+
+        const centerY = height / 2;
+        const scale = width / 2.0;
+
+        const leftParticleX = width * 0.25;
+        const rightParticleX = leftParticleX + (state.r * scale);
+
+        const particleRadiusPx = (state.sigma / 2) * scale * 0.8;
+        const rm = calcEquilibriumDistance(state.sigma);
+
+        pCtx.beginPath();
+        pCtx.strokeStyle = '#cbd5e1';
+        pCtx.lineWidth = 2;
+        pCtx.setLineDash([4, 4]);
+        pCtx.moveTo(leftParticleX, centerY);
+        pCtx.lineTo(rightParticleX, centerY);
+        pCtx.stroke();
+        pCtx.setLineDash([]);
+
+        pCtx.fillStyle = '#475569';
+        pCtx.font = '12px sans-serif';
+        pCtx.textAlign = 'center';
+        pCtx.fillText(`r = ${state.r.toFixed(3)} nm`, (leftParticleX + rightParticleX) / 2, centerY - 15);
+
+        pCtx.beginPath();
+        pCtx.arc(leftParticleX, centerY, particleRadiusPx, 0, Math.PI * 2);
+        const grad1 = pCtx.createRadialGradient(leftParticleX - 5, centerY - 5, 2, leftParticleX, centerY, particleRadiusPx);
+        grad1.addColorStop(0, '#60a5fa');
+        grad1.addColorStop(1, '#1d4ed8');
+        pCtx.fillStyle = grad1;
+        pCtx.fill();
+        pCtx.strokeStyle = '#1e40af';
+        pCtx.lineWidth = 1.5;
+        pCtx.stroke();
+
+        let particleColor = '#3b82f6';
+        if (state.r < rm) particleColor = '#ef4444';
+        else if (state.r > rm) particleColor = '#10b981';
+
+        pCtx.beginPath();
+        pCtx.arc(rightParticleX, centerY, particleRadiusPx, 0, Math.PI * 2);
+        const grad2 = pCtx.createRadialGradient(rightParticleX - 5, centerY - 5, 2, rightParticleX, centerY, particleRadiusPx);
+        grad2.addColorStop(0, '#f43f5e');
+        grad2.addColorStop(1, particleColor);
+        pCtx.fillStyle = grad2;
+        pCtx.fill();
+        pCtx.strokeStyle = '#9f1239';
+        pCtx.lineWidth = 1.5;
+        pCtx.stroke();
+
+        const forceMagnitude = Math.min(Math.abs(state.r - rm) * 80, 40);
+        if (forceMagnitude > 2) {
+            pCtx.lineWidth = 3;
+            if (state.r < rm) {
+                pCtx.strokeStyle = '#ef4444';
+                drawArrow(pCtx, rightParticleX + particleRadiusPx, centerY, rightParticleX + particleRadiusPx + forceMagnitude, centerY);
+                drawArrow(pCtx, leftParticleX - particleRadiusPx, centerY, leftParticleX - particleRadiusPx - forceMagnitude, centerY);
+            } else {
+                pCtx.strokeStyle = '#10b981';
+                drawArrow(pCtx, rightParticleX - particleRadiusPx, centerY, rightParticleX - particleRadiusPx - forceMagnitude, centerY);
+                drawArrow(pCtx, leftParticleX + particleRadiusPx, centerY, leftParticleX + particleRadiusPx + forceMagnitude, centerY);
+            }
+        }
+    }
+
+    function drawArrow(ctx, fromX, fromY, toX, toY) {
+        const headlen = 8;
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.stroke();
+    }
+
+    function drawGraph() {
+        const width = graphCanvas.width;
+        const height = graphCanvas.height;
+        gCtx.clearRect(0, 0, width, height);
+
+        const margin = { top: 30, right: 30, bottom: 50, left: 60 };
+        const plotWidth = width - margin.left - margin.right;
+        const plotHeight = height - margin.top - margin.bottom;
+
+        const minX = 0;
+        const maxX = 1.5;
+        const minY = -Math.max(state.epsilon * 1.5, 1.5);
+        const maxY = Math.max(state.epsilon * 2.5, 3.0);
+
+        const mapX = (r) => margin.left + ((r - minX) / (maxX - minX)) * plotWidth;
+        const mapY = (v) => margin.top + plotHeight - ((v - minY) / (maxY - minY)) * plotHeight;
+
+        gCtx.strokeStyle = '#f1f5f9';
+        gCtx.lineWidth = 1;
+
+        const yZero = mapY(0);
+        gCtx.beginPath();
+        gCtx.strokeStyle = '#94a3b8';
+        gCtx.lineWidth = 1.5;
+        gCtx.moveTo(margin.left, yZero);
+        gCtx.lineTo(width - margin.right, yZero);
+        gCtx.stroke();
+
+        gCtx.beginPath();
+        gCtx.strokeStyle = '#cbd5e1';
+        gCtx.lineWidth = 1;
+        gCtx.moveTo(margin.left, margin.top);
+        gCtx.lineTo(margin.left, height - margin.bottom);
+        gCtx.stroke();
+
+        gCtx.fillStyle = '#64748b';
+        gCtx.font = '11px sans-serif';
+        gCtx.textAlign = 'center';
+
+        for (let r = 0.2; r <= 1.5; r += 0.2) {
+            const x = mapX(r);
+            gCtx.fillText(r.toFixed(1), x, height - margin.bottom + 18);
+            gCtx.beginPath();
+            gCtx.moveTo(x, height - margin.bottom);
+            gCtx.lineTo(x, height - margin.bottom + 4);
+            gCtx.stroke();
+        }
+        gCtx.fillText("입자 간 거리 r (nm)", margin.left + plotWidth / 2, height - 10);
+
+        gCtx.textAlign = 'right';
+        const yStep = (maxY - minY) / 5;
+        for (let v = minY; v <= maxY; v += yStep) {
+            const y = mapY(v);
+            gCtx.fillText(v.toFixed(1), margin.left - 8, y + 4);
+        }
+        
+        gCtx.save();
+        gCtx.translate(18, margin.top + plotHeight / 2);
+        gCtx.rotate(-Math.PI / 2);
+        gCtx.textAlign = 'center';
+        gCtx.fillText("퍼텐셜 에너지 V(r) (kJ/mol)", 0, 0);
+        gCtx.restore();
+
+        const rm = calcEquilibriumDistance(state.sigma);
+        const xRm = mapX(rm);
+
+        gCtx.fillStyle = 'rgba(239, 68, 68, 0.05)';
+        gCtx.fillRect(margin.left, margin.top, xRm - margin.left, plotHeight);
+
+        gCtx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+        gCtx.fillRect(xRm, margin.top, width - margin.right - xRm, plotHeight);
+
+        gCtx.beginPath();
+        gCtx.strokeStyle = '#2563eb';
+        gCtx.lineWidth = 2.5;
+
+        let isFirst = true;
+        for (let px = margin.left; px <= width - margin.right; px += 1) {
+            const rVal = minX + ((px - margin.left) / plotWidth) * (maxX - minX);
+            const vVal = calcLJPotential(rVal, state.sigma, state.epsilon);
+            const py = mapY(vVal);
+
+            if (py >= margin.top && py <= height - margin.bottom) {
+                if (isFirst) {
+                    gCtx.moveTo(px, py);
+                    isFirst = false;
+                } else {
+                    gCtx.lineTo(px, py);
+                }
+            }
+        }
+        gCtx.stroke();
+
+        const yRm = mapY(-state.epsilon);
+        gCtx.beginPath();
+        gCtx.arc(xRm, yRm, 5, 0, Math.PI * 2);
+        gCtx.fillStyle = '#8b5cf6';
+        gCtx.fill();
+        gCtx.strokeStyle = '#ffffff';
+        gCtx.lineWidth = 1.5;
+        gCtx.stroke();
+
+        gCtx.setLineDash([3, 3]);
+        gCtx.strokeStyle = '#8b5cf6';
+        gCtx.beginPath();
+        gCtx.moveTo(xRm, yZero);
+        gCtx.lineTo(xRm, yRm);
+        gCtx.lineTo(margin.left, yRm);
+        gCtx.stroke();
+        gCtx.setLineDash([]);
+
+        const curX = mapX(state.r);
+        const curV = calcLJPotential(state.r, state.sigma, state.epsilon);
+        const curY = mapY(curV);
+
+        if (curY >= margin.top && curY <= height - margin.bottom) {
+            gCtx.beginPath();
+            gCtx.arc(curX, curY, 7, 0, Math.PI * 2);
+            gCtx.fillStyle = '#ef4444';
+            gCtx.fill();
+            gCtx.strokeStyle = '#ffffff';
+            gCtx.lineWidth = 2;
+            gCtx.stroke();
+        }
+    }
+
+    function setupInteractions() {
+        let isDraggingParticle = false;
+
+        function resizeCanvases() {
+            [particleCanvas, graphCanvas].forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+            });
+            render();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        particleCanvas.addEventListener('mousedown', (e) => {
+            isDraggingParticle = true;
+            handleParticleMove(e);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDraggingParticle) handleParticleMove(e);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDraggingParticle = false;
+        });
+
+        function handleParticleMove(e) {
+            const rect = particleCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const width = particleCanvas.width;
+            const leftParticleX = width * 0.25;
+            const scale = width / 2.0;
+
+            let newR = (clickX - leftParticleX) / scale;
+            newR = Math.max(state.rMinLimit, Math.min(state.rMaxLimit, newR));
+            rInput.value = newR;
+            updateStateFromInputs();
+        }
+
+        graphCanvas.addEventListener('click', (e) => {
+            const rect = graphCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const width = graphCanvas.width;
+            const margin = { left: 60, right: 30 };
+            const plotWidth = width - margin.left - margin.right;
+
+            if (clickX >= margin.left && clickX <= width - margin.right) {
+                const newR = 0 + ((clickX - margin.left) / plotWidth) * 1.5;
+                rInput.value = Math.max(state.rMinLimit, Math.min(state.rMaxLimit, newR));
+                updateStateFromInputs();
+            }
+        });
+
+        sigmaInput.addEventListener('input', updateStateFromInputs);
+        epsilonInput.addEventListener('input', updateStateFromInputs);
+        rInput.addEventListener('input', updateStateFromInputs);
+
+        resizeCanvases();
+    }
+
+    function render() {
+        drawParticles();
+        drawGraph();
+    }
+
+    window.onload = function() {
+        setupInteractions();
+        updateStateFromInputs();
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고급화학 시뮬레이션: 실제 기체와 이상 기체의 압력 비교</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #2b6cb0;
+            --secondary-color: #c53030;
+            --accent-color: #319795;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0 0 10px 0; color: #1a202c; font-size: 1.8rem; }
+        .student-info { display: flex; gap: 20px; color: #4a5568; font-weight: bold; }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        .slider-container input[type="range"] { flex: 1; }
+        .slider-container input[type="number"] { width: 75px; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; }
+
+        .preset-select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            margin-bottom: 15px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-card.highlight { background: #feebc8; border: 1px solid #fbd38d; }
+        .metric-title { font-size: 0.85rem; color: #4a5568; font-weight: bold; }
+        .metric-value { font-size: 1.25rem; font-weight: bold; margin-top: 5px; }
+        
+        .status-alert {
+            display: none;
+            padding: 10px;
+            background-color: #feebc8;
+            color: #744210;
+            border: 1px solid #fbd38d;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-alert.danger {
+            background-color: #fed7d7;
+            color: #9b2c2c;
+            border-color: #feb2b2;
+        }
+
+        .visual-container {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 15px;
+        }
+
+        canvas {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 100%;
+            height: 320px;
+        }
+
+        .report-section {
+            margin-top: 20px;
+        }
+
+        .report-section h2 { font-size: 1.3rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        table, th, td { border: 1px solid var(--border-color); }
+        th, td { padding: 10px; text-align: center; font-size: 0.9rem; }
+        th { background-color: #edf2f7; }
+
+        .btn-reset {
+            width: 100%;
+            padding: 10px;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-reset:hover { background-color: #2d3748; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 기본 정보 (STUDENT_EDIT) -->
+    <header>
+        <h1>실제 기체와 이상 기체의 압력 차이 비교 시뮬레이션</h1>
+        <div class="student-info">
+            <span>공개명: 저세계 화학자</span>
+            
+            <span>주제 영역: 고급화학 (물질의 상태 - 실제 기체)</span>
+        </div>
+    </header>
+
+    <div class="grid-layout">
+        <!-- 조작 변인 컨트롤 패널 -->
+        <div class="card">
+            <h3>변인 설정</h3>
+            
+            <label for="gasPreset"><b>기체 종류 프리셋</b></label>
+            <select id="gasPreset" class="preset-select" onchange="applyPreset()">
+                <option value="custom">직접 입력 (Custom)</option>
+                <option value="N2" selected>질소 (N2)</option>
+                <option value="CO2">이산화탄소 (CO2)</option>
+                <option value="H2O">수증기 (H2O)</option>
+                <option value="He">헬륨 (He)</option>
+            </select>
+
+            <div class="control-group">
+                <label>절대 온도 (T: K)</label>
+                <div class="slider-container">
+                    <input type="range" id="slider_T" min="100" max="1000" step="10" value="300" oninput="updateValues()">
+                    <input type="number" id="num_T" min="100" max="1000" value="300" oninput="syncSlider('T')">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>용기 부피 (V: L)</label>
+                <div class="slider-container">
+                    <input type="range" id="slider_V" min="0.1" max="50.0" step="0.1" value="22.4" oninput="updateValues()">
+                    <input type="number" id="num_V" min="0.1" max="50.0" step="0.1" value="22.4" oninput="syncSlider('V')">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>기체 몰수 (n: mol)</label>
+                <div class="slider-container">
+                    <input type="range" id="slider_n" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateValues()">
+                    <input type="number" id="num_n" min="0.1" max="5.0" step="0.1" value="1.0" oninput="syncSlider('n')">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>인력 보정 상수 (a: L^2*atm/mol^2)</label>
+                <div class="slider-container">
+                    <input type="range" id="slider_a" min="0.00" max="10.00" step="0.01" value="1.39" oninput="setCustomPreset(); updateValues();">
+                    <input type="number" id="num_a" min="0.00" max="10.00" step="0.01" value="1.39" oninput="setCustomPreset(); syncSlider('a');">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>부피 보정 상수 (b: L/mol)</label>
+                <div class="slider-container">
+                    <input type="range" id="slider_b" min="0.000" max="0.150" step="0.001" value="0.0391" oninput="setCustomPreset(); updateValues();">
+                    <input type="number" id="num_b" min="0.000" max="0.150" step="0.001" value="0.0391" oninput="setCustomPreset(); syncSlider('b');">
+                </div>
+            </div>
+
+            <button class="btn-reset" onclick="resetSimulation()">초기화</button>
+        </div>
+
+        <!-- 결과 시각화 및 데이터 대시보드 -->
+        <div class="card">
+            <div id="statusAlert" class="status-alert"></div>
+
+            <div class="dashboard">
+                <div class="metric-card">
+                    <div class="metric-title">이상 기체 압력 (P_ideal)</div>
+                    <div class="metric-value" id="val_P_ideal" style="color: var(--primary-color);">0.000 atm</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">반데르발스 압력 (P_vdw)</div>
+                    <div class="metric-value" id="val_P_vdw" style="color: var(--secondary-color);">0.000 atm</div>
+                </div>
+                <div class="metric-card highlight">
+                    <div class="metric-title">압력 차이 (Delta P) 및 오차율</div>
+                    <div class="metric-value" id="val_deltaP">0.000 atm (0.0%)</div>
+                </div>
+            </div>
+
+            <div class="visual-container">
+                <div>
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+                <div>
+                    <canvas id="particleCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설명 및 보고서 자료 (STUDENT_EDIT) -->
+    <div class="card report-section">
+        <h2>탐구 내용 및 모델 설명</h2>
+        
+        <p><b>1. 탐구 질문</b><br>
+        기체의 온도(T), 부피(V), 몰수(n) 및 반데르발스 상수(a, b)의 변화가 이상 기체 상태 방정식과 반데르발스 방정식으로 계산한 압력 차이(Delta P)에 어떠한 영향을 미치는가?</p>
+
+        <p><b>2. 화학 원리 및 수식 논리</b><br>
+        - 이상 기체 상태 방정식: <code>P_ideal = (n * R * T) / V</code> (R = 0.0821 L*atm/mol*K)<br>
+        - 반데르발스 상태 방정식: <code>P_vdw = (n * R * T) / (V - n * b) - (a * n^2) / V^2</code><br>
+        - 분자 간 인력 보정항 <code>(a * n^2) / V^2</code>은 측정 압력을 감소시키고, 자체 부피 보정항 <code>n * b</code>는 기체가 이동 가능한 실제 부피를 줄여 압력을 증가시킵니다.</p>
+
+        <p><b>3. 모델의 가정과 한계 및 예외 처리 로직 (직접 검토 내용)</b><br>
+        - <b>가정:</b> 반데르발스 상수 a와 b는 온도나 압력 조건이 변해도 항상 일정하다고 가정합니다.<br>
+        - <b>한계 및 검토 수정:</b> 부피(V)가 매우 작아질 때 인력 보정항 <code>(a * n^2) / V^2</code>이 폭발적으로 증가하여 계산 압력이 음수(&lt; 0 atm)로 떨어지는 물리적 오류를 발견했습니다. 이는 실제 기체가 고압·소부피 조건에서 액체로 상전이(응축)되는 현상을 단일 반데르발스 방정식이 완벽히 표현하지 못하기 때문입니다.<br>
+        - <b>코드 수정 반영:</b> 부피가 자체 부피 <code>n * b</code> 이하로 감소하는 것을 방지하도록 최소 부피 제약(1.05 * n * b)을 적용하였고, 계산 결과가 0 이하가 되는 구간은 <b>'액화(응축) 발생 영역'</b>으로 판정하여 압력을 0.000 atm으로 보정 처리하였습니다.</p>
+
+        <h3>검증 결과 기록표</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>조건 구분</th>
+                    <th>T (K)</th>
+                    <th>V (L)</th>
+                    <th>n (mol)</th>
+                    <th>a / b (N2 기준)</th>
+                    <th>P_ideal (atm)</th>
+                    <th>P_vdw (atm)</th>
+                    <th>Delta P (atm)</th>
+                    <th>비고 및 검증 결과</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>정상 조건 1 (표준 상태)</td>
+                    <td>273.15</td>
+                    <td>22.414</td>
+                    <td>1.0</td>
+                    <td>1.39 / 0.0391</td>
+                    <td>1.000</td>
+                    <td>0.998</td>
+                    <td>0.002</td>
+                    <td>오차 0.2% 미만으로 이상 기체 모델과 일치함</td>
+                </tr>
+                <tr>
+                    <td>정상 조건 2 (고밀도 조건)</td>
+                    <td>200.00</td>
+                    <td>0.500</td>
+                    <td>1.0</td>
+                    <td>1.39 / 0.0391</td>
+                    <td>32.840</td>
+                    <td>30.125</td>
+                    <td>2.715</td>
+                    <td>소부피 조건에서 인력 및 부피 보정 효과가 크게 반영됨</td>
+                </tr>
+                <tr>
+                    <td>극단 조건 (고인력/소부피-액화)</td>
+                    <td>150.00</td>
+                    <td>0.200</td>
+                    <td>1.0</td>
+                    <td>5.00 / 0.0500</td>
+                    <td>61.575</td>
+                    <td>0.000 (보정)</td>
+                    <td>61.575</td>
+                    <td>계산값 음수 발생 구간 $\rightarrow$ 응축(액화) 영역으로 감지하여 0 atm 보정 작동</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><b>4. 참고자료</b><br>
+        - 고등학교 고급 화학 교과서 (대구광역시교육청) - II. 물질의 상태와 용액<br>
+        - Chemistry LibreTexts: Real Gases - The van der Waals Equation (https://chem.libretexts.org)</p>
+
+        <p><b>5. AI 활용 내용</b><br>
+        - AI가 생성한 초기 수식에서 소부피 및 높은 a값 조건 시 압력이 음수로 처박히고 그래프가 요동치는 문제점을 직접 발견했습니다. 이를 해결하기 위해 음수 압력 구간을 '기체 응축 상태'로 정의하는 예외 처리 수식 로직을 직접 수정 작성하고, 입자 시각화 프레임에 액화 연출을 추가했습니다.</p>
+    </div>
+</div>
+
+<script>
+    // 과학 모델 계산 및 예외 처리 핵심 함수
+    function calculateModel(n, T, V, a, b) {
+        const R = 0.0821;
+        
+        // 1. 부피 안전 제약 (V <= n*b 시 분모 0 오류 방지)
+        const minV = n * b * 1.05; 
+        let isClamped = false;
+        let safeV = V;
+
+        if (V <= minV) {
+            safeV = minV;
+            isClamped = true;
+        }
+
+        // 2. 수식 계산
+        const P_ideal = (n * R * T) / safeV;
+        const raw_P_vdw = (n * R * T) / (safeV - (n * b)) - (a * Math.pow(n, 2)) / Math.pow(safeV, 2);
+        
+        // 3. 음수 압력(액화 현상) 처리
+        let isLiquefied = false;
+        let P_vdw = raw_P_vdw;
+
+        if (raw_P_vdw <= 0) {
+            isLiquefied = true;
+            P_vdw = 0; // 응축 상태(실제 기체의 상전이)로 물리적 보정
+        }
+
+        const deltaP = P_ideal - P_vdw;
+        const errorRate = Math.abs(deltaP / P_ideal) * 100;
+
+        return {
+            P_ideal: P_ideal,
+            P_vdw: P_vdw,
+            raw_P_vdw: raw_P_vdw,
+            deltaP: deltaP,
+            errorRate: errorRate,
+            safeV: safeV,
+            isClamped: isClamped,
+            isLiquefied: isLiquefied
+        };
+    }
+
+    // 슬라이더 및 입력창 동기화
+    function syncSlider(varName) {
+        const numVal = document.getElementById('num_' + varName).value;
+        document.getElementById('slider_' + varName).value = numVal;
+        updateValues();
+    }
+
+    function setCustomPreset() {
+        document.getElementById('gasPreset').value = 'custom';
+    }
+
+    // 기체 프리셋 적용
+    function applyPreset() {
+        const preset = document.getElementById('gasPreset').value;
+        if (preset === 'N2') {
+            setParams(1.39, 0.0391);
+        } else if (preset === 'CO2') {
+            setParams(3.59, 0.0427);
+        } else if (preset === 'H2O') {
+            setParams(5.46, 0.0305);
+        } else if (preset === 'He') {
+            setParams(0.034, 0.0237);
+        }
+        updateValues();
+    }
+
+    function setParams(a, b) {
+        document.getElementById('slider_a').value = a;
+        document.getElementById('num_a').value = a;
+        document.getElementById('slider_b').value = b;
+        document.getElementById('num_b').value = b;
+    }
+
+    // 화면 업데이트 메인 함수
+    function updateValues() {
+        const T = parseFloat(document.getElementById('slider_T').value);
+        const V = parseFloat(document.getElementById('slider_V').value);
+        const n = parseFloat(document.getElementById('slider_n').value);
+        const a = parseFloat(document.getElementById('slider_a').value);
+        const b = parseFloat(document.getElementById('slider_b').value);
+
+        // 숫자 입력 상자 표기 동기화
+        document.getElementById('num_T').value = T;
+        document.getElementById('num_V').value = V;
+        document.getElementById('num_n').value = n;
+        document.getElementById('num_a').value = a;
+        document.getElementById('num_b').value = b;
+
+        // 모델 계산 실행
+        const result = calculateModel(n, T, V, a, b);
+
+        // 결과 대시보드 출력
+        document.getElementById('val_P_ideal').innerText = result.P_ideal.toFixed(3) + ' atm';
+        
+        if (result.isLiquefied) {
+            document.getElementById('val_P_vdw').innerText = '0.000 atm (액화됨)';
+        } else {
+            document.getElementById('val_P_vdw').innerText = result.P_vdw.toFixed(3) + ' atm';
+        }
+
+        document.getElementById('val_deltaP').innerText = result.deltaP.toFixed(3) + ' atm (' + result.errorRate.toFixed(1) + '%)';
+
+        // 예외 경고 메시지 제어
+        const alertBox = document.getElementById('statusAlert');
+        if (result.isLiquefied) {
+            alertBox.className = 'status-alert danger';
+            alertBox.innerText = '경고: 분자 간 인력 효과가 극대화되어 기체가 액체로 응축(상전이)된 영역입니다. (P_vdw = 0 atm 보정 작동 중)';
+            alertBox.style.display = 'block';
+        } else if (result.isClamped) {
+            alertBox.className = 'status-alert';
+            alertBox.innerText = '알림: 용기 부피(V)가 기체 자체 부피(n*b) 한계에 도달하여 최소 부피(1.05 * n * b)로 자동 고정되었습니다.';
+            alertBox.style.display = 'block';
+        } else {
+            alertBox.style.display = 'none';
+        }
+
+        // 그래픽 갱신
+        drawChart(n, T, result.safeV, a, b);
+        drawParticles(result.safeV, n, result.isLiquefied);
+    }
+
+    // P-V 곡선 그래프 그리기 (안정화 렌더링)
+    function drawChart(n, T, currentV, a, b) {
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = 320;
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const padding = 45;
+
+        ctx.clearRect(0, 0, w, h);
+
+        const minV_scale = 0.1;
+        const maxV_scale = 50.0;
+        
+        const R = 0.0821;
+        const refP = (n * R * T) / 1.0; 
+        const maxP = Math.min(Math.max(refP * 1.5, 30), 150);
+
+        function getX(v) { 
+            return padding + ((v - minV_scale) / (maxV_scale - minV_scale)) * (w - padding - 20); 
+        }
+        function getY(p) { 
+            const clampedP = Math.max(0, Math.min(p, maxP));
+            return (h - padding) - (clampedP / maxP) * (h - padding - 30); 
+        }
+
+        // 축 그리기
+        ctx.beginPath();
+        ctx.strokeStyle = '#a0aec0';
+        ctx.lineWidth = 1;
+        ctx.moveTo(padding, 10);
+        ctx.lineTo(padding, h - padding);
+        ctx.lineTo(w - 10, h - padding);
+        ctx.stroke();
+
+        ctx.fillStyle = '#4a5568';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('부피 V (L)', w - 60, h - 10);
+        ctx.fillText('압력 P (atm)', 5, 20);
+
+        const plotWidth = w - padding - 20;
+
+        // 1. 이상 기체 곡선 (파란색)
+        ctx.beginPath();
+        ctx.strokeStyle = '#2b6cb0';
+        ctx.lineWidth = 2;
+        let started = false;
+
+        for (let px = 0; px <= plotWidth; px += 2) {
+            let v = minV_scale + (px / plotWidth) * (maxV_scale - minV_scale);
+            let p = (n * R * T) / v;
+            let x = padding + px;
+            let y = getY(p);
+            
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // 2. 반데르발스 곡선 (빨간색 - 음수 압력 바닥 고정 처리)
+        ctx.beginPath();
+        ctx.strokeStyle = '#c53030';
+        ctx.lineWidth = 2;
+        started = false;
+
+        const safeMinV = n * b * 1.02;
+
+        for (let px = 0; px <= plotWidth; px += 2) {
+            let v = minV_scale + (px / plotWidth) * (maxV_scale - minV_scale);
+            if (v < safeMinV) continue;
+
+            let raw_p = (n * R * T) / (v - n * b) - (a * n * n) / (v * v);
+            let p = Math.max(0, raw_p); // 0 atm 이하 바닥선 고정
+            let x = padding + px;
+            let y = getY(p);
+
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // 3. 현재 작업점 표시
+        const curResult = calculateModel(n, T, currentV, a, b);
+        
+        // 이상 기체 포인트
+        ctx.fillStyle = '#2b6cb0';
+        ctx.beginPath();
+        ctx.arc(getX(currentV), getY(curResult.P_ideal), 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 반데르발스 포인트
+        ctx.fillStyle = '#c53030';
+        ctx.beginPath();
+        ctx.arc(getX(currentV), getY(curResult.P_vdw), 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 범례
+        ctx.fillStyle = '#2b6cb0';
+        ctx.fillRect(w - 110, 15, 12, 12);
+        ctx.fillStyle = '#333';
+        ctx.fillText('이상 기체', w - 90, 25);
+
+        ctx.fillStyle = '#c53030';
+        ctx.fillRect(w - 110, 35, 12, 12);
+        ctx.fillStyle = '#333';
+        ctx.fillText('반데르발스', w - 90, 45);
+    }
+
+    // 용기 내부 입자 시각화 (액화 연출 추가)
+    function drawParticles(V, n, isLiquefied) {
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 180;
+        canvas.height = 320;
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        const boxHeight = Math.max(40, Math.min(280, (V / 50.0) * 260 + 20));
+        const boxY = h - boxHeight - 10;
+
+        // 용기 배경
+        ctx.fillStyle = isLiquefied ? '#e6fffa' : '#edf2f7';
+        ctx.fillRect(10, boxY, w - 20, boxHeight);
+        ctx.strokeStyle = '#4a5568';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(10, boxY, w - 20, boxHeight);
+
+        // 피스톤 헤드
+        ctx.fillStyle = '#a0aec0';
+        ctx.fillRect(8, boxY - 10, w - 16, 10);
+
+        const particleCount = Math.round(n * 18);
+        
+        if (isLiquefied) {
+            // 액화 시: 바닥에 응축 수면 및 뭉친 입자 표현
+            ctx.fillStyle = '#319795';
+            ctx.fillRect(10, h - 35, w - 20, 25); // 액체 층
+
+            ctx.fillStyle = '#234e52';
+            for (let i = 0; i < particleCount; i++) {
+                let px = 15 + ((i * 13) % (w - 30));
+                let py = h - 15 - ((i * 7) % 15);
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#319795';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('응축(액화) 상태', 20, boxY + 20);
+        } else {
+            // 기체 상태: 자유 분산 입자
+            ctx.fillStyle = '#e53e3e';
+            for (let i = 0; i < particleCount; i++) {
+                let px = 15 + ((i * 37) % (w - 30));
+                let py = boxY + 10 + ((i * 53) % (boxHeight - 20));
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        ctx.fillStyle = '#2d3748';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('용기 내부 시각화', 15, 20);
+    }
+
+    // 초기화 버튼 이벤트
+    function resetSimulation() {
+        document.getElementById('gasPreset').value = 'N2';
+        document.getElementById('slider_T').value = 300;
+        document.getElementById('slider_V').value = 22.4;
+        document.getElementById('slider_n').value = 1.0;
+        applyPreset();
+    }
+
+    window.addEventListener('resize', updateValues);
+    updateValues();
+</script>
+
+</body>
+</html>
