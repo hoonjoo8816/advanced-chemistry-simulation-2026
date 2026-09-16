@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>철도 교량 레일 음극보호 및 장기 부식 시뮬레이션</title>
+    
+    <!-- MathJax 3 CDN -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #0b1329;
+            --card-bg: #111d38;
+            --card-border: #1e2d52;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-cyan: #00f2fe;
+            --danger-red: #ff4b4b;
+            --safe-green: #00e676;
+            --warn-yellow: #ffb300;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 24px; }
+
+        header {
+            max-width: 1200px; margin: 0 auto 20px auto;
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card-bg); padding: 16px 24px; border-radius: 16px;
+            border: 1px solid var(--card-border);
+        }
+        h1 { font-size: 1.25rem; color: #fff; font-weight: 700; }
+        .header-badge {
+            background: rgba(0, 242, 254, 0.1); color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan); padding: 4px 12px; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+
+        .grid-container {
+            display: grid; grid-template-columns: 1fr 360px; gap: 20px;
+            max-width: 1200px; margin: 0 auto;
+        }
+        @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--card-bg); padding: 20px; border-radius: 16px;
+            border: 1px solid var(--card-border); margin-bottom: 20px;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); }
+
+        .control-group { margin-bottom: 18px; }
+        .control-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+        .control-value { color: var(--accent-cyan); font-weight: 700; }
+
+        input[type="range"] {
+            width: 100%; height: 6px; border-radius: 3px; background: #1e2d52;
+            outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--accent-cyan); cursor: pointer; box-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+        }
+
+        .status-badge {
+            width: 100%; padding: 12px; text-align: center; font-weight: 700;
+            border-radius: 10px; font-size: 0.9rem; margin-bottom: 16px;
+        }
+        .status-danger { background: rgba(255, 75, 75, 0.15); color: var(--danger-red); border: 1px solid var(--danger-red); }
+        .status-safe { background: rgba(0, 230, 118, 0.15); color: var(--safe-green); border: 1px solid var(--safe-green); }
+        .status-warn { background: rgba(255, 179, 0, 0.15); color: var(--warn-yellow); border: 1px solid var(--warn-yellow); }
+
+        .metric-card {
+            background: rgba(11, 19, 41, 0.6); border: 1px solid var(--card-border);
+            border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .metric-name { font-size: 0.8rem; color: var(--text-muted); }
+        .metric-val { font-size: 0.9rem; font-weight: 700; color: #ffffff; }
+
+        .formula-box {
+            background: rgba(11, 19, 41, 0.8); border-left: 3px solid var(--accent-cyan);
+            padding: 12px 16px; border-radius: 6px; font-size: 0.88rem; margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .formula-title { color: var(--accent-cyan); font-weight: 700; margin-bottom: 4px; }
+
+        canvas { width: 100%; display: block; border-radius: 10px; }
+        .legend { display: flex; gap: 16px; font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CHEMISTRY SIMULATION</h1>
+        <div class="header-badge">KTX-산천 교량 선로 음극보호 제어</div>
+    </header>
+
+    <div class="grid-container">
+        <main>
+            <!-- 1. 철도대교 시각화 및 KTX-산천 렌더링 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">철도 교량 구간 KTX-산천 통과 시각화</span>
+                </div>
+                <canvas id="animCanvas" height="230"></canvas>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#ff4b4b"></div>부식 이온 ($\text{Fe}^{2+}$)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#00f2fe"></div>외부 유입 전자 ($e^-$)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ffb300"></div>수소 기포 ($\text{H}_2$)</div>
+                </div>
+            </div>
+
+            <!-- 2. 장기(3년) 부식 그래프 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">장기 시간 경과($t$)에 따른 누적 레일 손실량 ($g/\text{m}^2$)</span>
+                </div>
+                <canvas id="chartCanvas" height="190"></canvas>
+            </div>
+
+            <!-- 3. 원리 수식 설명 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">화학 원리 및 수식 분석</span>
+                </div>
+                
+                <div class="formula-box">
+                    <div class="formula-title">1. 온도 영향이 반영된 네른스트 방정식</div>
+                    <div>$$E_{\text{Nernst}} = E^0 - \frac{R \cdot T}{n \cdot F} \ln([\text{Fe}^{2+}])$$
+                    <span style="font-size:0.8rem; color:var(--text-muted);">온도($T$)가 상승할수록 셀 전위의 변동폭이 커져 부식 구동력이 변화합니다.</span></div>
+                </div>
+
+                <div class="formula-box">
+                    <div class="formula-title">2. 패러데이 전기분해 법칙 (손실 질량식)</div>
+                    <div>$$m(t) = \frac{M \cdot I_{\text{corr}} \cdot t}{n \cdot F}$$
+                    <span style="font-size:0.8rem; color:var(--text-muted);">$M$: 몰질량 ($55.85\text{ g/mol}$), $t$: 장기 경과 시간(최대 3년), $I_{\text{corr}}$: 부식 전류</span></div>
+                </div>
+
+                <div class="formula-box">
+                    <div class="formula-title">3. 타펠(Tafel) 과전압-부식 속도식</div>
+                    <div>$$I_{\text{corr}} = I_0 \cdot 10^{\frac{E_{\text{Nernst}} - E_{\text{ext}}}{\beta_a}}$$
+                    <span style="font-size:0.8rem; color:var(--text-muted);">$E_{\text{ext}} \le E_{\text{Nernst}}$로 인가 시 $I_{\text{corr}} \rightarrow 0$이 되어 장기 부식이 차단됩니다.</span></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 사이드바 패널 -->
+        <aside>
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">교량 선로 상태 진단</span>
+                </div>
+                <div id="statusBadge" class="status-badge status-danger">부식 진행 위험</div>
+
+                <div class="metric-card">
+                    <span class="metric-name">네른스트 전위 ($E_{\text{Nernst}}$)</span>
+                    <span class="metric-val" id="mNernst">-0.47 V</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-name">부식 전류 밀도 ($I_{\text{corr}}$)</span>
+                    <span class="metric-val" id="mIcorr">100.0 μA/cm²</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-name">3년 누적 예상 손실량</span>
+                    <span class="metric-val" id="mLoss">3126 g/m²</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">변인 조절 (다변수)</span>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>외부 인가 전위 ($E_{\text{ext}}$)</span>
+                        <span class="control-value" id="vEext">0.00 V</span>
+                    </div>
+                    <input type="range" id="inputEext" min="-2.0" max="0.2" step="0.05" value="0.00">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>환경 온도 ($T$)</span>
+                        <span class="control-value" id="vTemp">298 K (25°C)</span>
+                    </div>
+                    <input type="range" id="inputTemp" min="263" max="333" step="1" value="298">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>수분 내 $[\text{Fe}^{2+}]$ 농도</span>
+                        <span class="control-value" id="vConc">0.100 M</span>
+                    </div>
+                    <input type="range" id="inputConc" min="0.001" max="1.0" step="0.001" value="0.100">
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const R_GAS = 8.314;
+        const FARADAY = 96485;
+        const MOLAR_MASS_FE = 55.85;
+        const N_ELECTRONS = 2;
+        const E0_FE = -0.44;
+
+        const inputEext = document.getElementById('inputEext');
+        const inputTemp = document.getElementById('inputTemp');
+        const inputConc = document.getElementById('inputConc');
+
+        const vEext = document.getElementById('vEext');
+        const vTemp = document.getElementById('vTemp');
+        const vConc = document.getElementById('vConc');
+
+        const statusBadge = document.getElementById('statusBadge');
+        const mNernst = document.getElementById('mNernst');
+        const mIcorr = document.getElementById('mIcorr');
+        const mLoss = document.getElementById('mLoss');
+
+        const animCanvas = document.getElementById('animCanvas');
+        const animCtx = animCanvas.getContext('2d');
+        const chartCanvas = document.getElementById('chartCanvas');
+        const chartCtx = chartCanvas.getContext('2d');
+
+        let particles = [];
+        let trainX = -350;
+
+        function calcCorrosion(E_ext, T, conc) {
+            const E_nernst = E0_FE - ((R_GAS * T) / (N_ELECTRONS * FARADAY)) * Math.log(conc);
+            const delta_E = E_nernst - E_ext;
+
+            let I_corr = 0;
+            if (delta_E > 0) {
+                const tempFactor = (T / 298);
+                I_corr = 10 * tempFactor * Math.pow(10, delta_E / (0.15 * tempFactor));
+            }
+
+            const time_3year_sec = 3 * 365 * 24 * 3600;
+            const current_A_m2 = I_corr * 0.01;
+            const loss_3year = (current_A_m2 * time_3year_sec * MOLAR_MASS_FE) / (N_ELECTRONS * FARADAY);
+
+            return { E_nernst, I_corr, loss_3year };
+        }
+
+        function update() {
+            const E_ext = parseFloat(inputEext.value);
+            const T = parseFloat(inputTemp.value);
+            const conc = parseFloat(inputConc.value);
+
+            vEext.innerText = `${E_ext.toFixed(2)} V`;
+            vTemp.innerText = `${T} K (${(T - 273.15).toFixed(0)}°C)`;
+            vConc.innerText = `${conc.toFixed(3)} M`;
+
+            const res = calcCorrosion(E_ext, T, conc);
+
+            mNernst.innerText = `${res.E_nernst.toFixed(2)} V`;
+            mIcorr.innerText = `${res.I_corr.toFixed(1)} μA/cm²`;
+            mLoss.innerText = `${Math.round(res.loss_3year)} g/m² (3년)`;
+
+            if (E_ext <= -1.20) {
+                statusBadge.innerText = "과보호 발생 (수소 취성 위험)";
+                statusBadge.className = "status-badge status-warn";
+            } else if (E_ext <= res.E_nernst) {
+                statusBadge.innerText = "음극보호 완전 작용 (교량 레일 안전)";
+                statusBadge.className = "status-badge status-safe";
+            } else {
+                statusBadge.innerText = "부식 진행 위험 (교량 손실 가속)";
+                statusBadge.className = "status-badge status-danger";
+            }
+
+            drawTimeChart(E_ext, T, conc);
+        }
+
+        function drawTimeChart(E_ext, T, conc) {
+            const w = chartCanvas.width;
+            const h = chartCanvas.height;
+            const padLeft = 55, padBottom = 30, padTop = 20, padRight = 25;
+
+            chartCtx.clearRect(0, 0, w, h);
+
+            // 촘촘한 세로 격자선 (0개월, 6개월, 1년, 2년, 3년)
+            const timePoints = [
+                { label: '0개월', ratio: 0 },
+                { label: '6개월', ratio: 0.166 },
+                { label: '1년', ratio: 0.333 },
+                { label: '2년', ratio: 0.666 },
+                { label: '3년 (t)', ratio: 1.0 }
+            ];
+
+            chartCtx.strokeStyle = '#1e2d52';
+            chartCtx.lineWidth = 1;
+
+            // 가로 격자선
+            for (let i = 1; i <= 3; i++) {
+                let y = padTop + (h - padTop - padBottom) * (i / 4);
+                chartCtx.beginPath();
+                chartCtx.moveTo(padLeft, y);
+                chartCtx.lineTo(w - padRight, y);
+                chartCtx.stroke();
+            }
+
+            // 세로 격자선 및 눈금 표시
+            chartCtx.fillStyle = '#94a3b8';
+            chartCtx.font = '10px sans-serif';
+
+            timePoints.forEach(pt => {
+                let x = padLeft + (w - padLeft - padRight) * pt.ratio;
+                chartCtx.beginPath();
+                chartCtx.moveTo(x, padTop);
+                chartCtx.lineTo(x, h - padBottom);
+                chartCtx.stroke();
+                chartCtx.fillText(pt.label, x - 12, h - 10);
+            });
+
+            // 곡선 그리기 (0 ~ 3년)
+            const calc = calcCorrosion(E_ext, T, conc);
+            const maxLossLimit = 7500; // 3년 최대 수치
+
+            chartCtx.beginPath();
+            chartCtx.strokeStyle = '#00f2fe';
+            chartCtx.lineWidth = 3;
+
+            for (let px = padLeft; px <= w - padRight; px++) {
+                const progress = (px - padLeft) / (w - padLeft - padRight); // 0 ~ 1 (3년 비율)
+                const currentLoss = calc.loss_3year * progress;
+                const clampedLoss = Math.min(currentLoss, maxLossLimit);
+
+                const py = (h - padBottom) - (clampedLoss / maxLossLimit) * (h - padTop - padBottom);
+
+                if (px === padLeft) chartCtx.moveTo(px, py);
+                else chartCtx.lineTo(px, py);
+            }
+            chartCtx.stroke();
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 35; i++) {
+                particles.push({
+                    x: Math.random() * animCanvas.width,
+                    y: Math.random() * 40 + 90,
+                    type: Math.random() > 0.5 ? 'Fe' : 'e'
+                });
+            }
+        }
+
+        function renderAnim() {
+            const w = animCanvas.width;
+            const h = animCanvas.height;
+            const railY = 135;
+
+            const E_ext = parseFloat(inputEext.value);
+            const T = parseFloat(inputTemp.value);
+            const conc = parseFloat(inputConc.value);
+            const res = calcCorrosion(E_ext, T, conc);
+
+            animCtx.clearRect(0, 0, w, h);
+
+            // 1. 배경 하늘 및 철도 교량(Pillar)
+            animCtx.fillStyle = '#1e293b';
+            for (let x = 40; x < w; x += 110) {
+                // 교량 기둥
+                animCtx.fillRect(x, railY + 20, 30, h - railY - 20);
+                animCtx.fillStyle = '#334155';
+                animCtx.fillRect(x - 5, railY + 20, 40, 8); // 교각 상판 받침
+                animCtx.fillStyle = '#1e293b';
+            }
+
+            // 교량 하부 상판 콘크리트
+            animCtx.fillStyle = '#475569';
+            animCtx.fillRect(0, railY + 12, w, 10);
+
+            // 2. 전차선 전주 (Catenary Pole)
+            animCtx.strokeStyle = '#64748b';
+            animCtx.lineWidth = 2;
+            for (let x = 20; x < w; x += 180) {
+                animCtx.beginPath();
+                animCtx.moveTo(x, railY + 12);
+                animCtx.lineTo(x, railY - 100);
+                animCtx.lineTo(x + 25, railY - 100);
+                animCtx.stroke();
+            }
+
+            // 3. 자갈 도상 & 콘크리트 침목
+            animCtx.fillStyle = '#334155';
+            animCtx.fillRect(0, railY - 6, w, 18);
+
+            for (let x = 8; x < w; x += 40) {
+                animCtx.fillStyle = '#cbd5e1';
+                animCtx.fillRect(x, railY + 2, 22, 10);
+            }
+
+            // 4. 레일 부식 색상
+            let rustColor = '#94a3b8';
+            if (res.I_corr > 30) rustColor = '#b45309';
+
+            animCtx.fillStyle = rustColor;
+            animCtx.fillRect(0, railY - 4, w, 6);
+
+            // 5. KTX-산천 렌더링
+            trainX += 3.5;
+            if (trainX > w + 350) trainX = -350;
+
+            animCtx.save();
+            animCtx.translate(trainX, railY - 58);
+
+            // 유선형 백색 차체
+            animCtx.fillStyle = '#f8fafc';
+            animCtx.beginPath();
+            animCtx.moveTo(0, 18);
+            animCtx.quadraticCurveTo(70, -10, 160, 0);
+            animCtx.lineTo(320, 0);
+            animCtx.lineTo(320, 52);
+            animCtx.lineTo(25, 52);
+            animCtx.quadraticCurveTo(0, 42, 0, 18);
+            animCtx.fill();
+
+            // KTX-산천 포인트 블루/퍼플 투톤 도색
+            animCtx.fillStyle = '#3b82f6'; // 상단 블루
+            animCtx.beginPath();
+            animCtx.moveTo(35, 10);
+            animCtx.quadraticCurveTo(80, 0, 160, 5);
+            animCtx.lineTo(320, 5);
+            animCtx.lineTo(320, 22);
+            animCtx.lineTo(50, 22);
+            animCtx.fill();
+
+            // 전면 윈드실드
+            animCtx.fillStyle = '#0f172a';
+            animCtx.beginPath();
+            animCtx.moveTo(25, 15);
+            animCtx.quadraticCurveTo(60, 5, 95, 12);
+            animCtx.lineTo(85, 24);
+            animCtx.lineTo(35, 24);
+            animCtx.fill();
+
+            // KTX-산천 텍스트 로고
+            animCtx.fillStyle = '#1e3a8a';
+            animCtx.font = 'bold 11px sans-serif';
+            animCtx.fillText('KTX-산천', 120, 38);
+
+            // 헤드라이트
+            animCtx.fillStyle = '#ffb300';
+            animCtx.fillRect(15, 38, 8, 4);
+
+            // 바퀴
+            animCtx.fillStyle = '#0f172a';
+            animCtx.beginPath();
+            animCtx.arc(75, 53, 6, 0, Math.PI * 2);
+            animCtx.arc(260, 53, 6, 0, Math.PI * 2);
+            animCtx.fill();
+
+            animCtx.restore();
+
+            // 6. 입자 이온 애니메이션
+            particles.forEach(p => {
+                if (res.I_corr > 0) {
+                    if (p.type === 'Fe') {
+                        p.y -= 0.5 * (T / 298);
+                        if (p.y < 35) { p.y = railY - 4; p.x = Math.random() * w; }
+                    } else {
+                        p.x += 1.5;
+                        if (p.x > w) p.x = 0;
+                    }
+                }
+
+                animCtx.beginPath();
+                animCtx.fillStyle = (p.type === 'Fe') ? '#ff4b4b' : '#00f2fe';
+                animCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                animCtx.fill();
+            });
+
+            requestAnimationFrame(renderAnim);
+        }
+
+        function resize() {
+            animCanvas.width = animCanvas.parentElement.clientWidth;
+            chartCanvas.width = chartCanvas.parentElement.clientWidth;
+            update();
+        }
+
+        inputEext.addEventListener('input', update);
+        inputTemp.addEventListener('input', update);
+        inputConc.addEventListener('input', update);
+        window.addEventListener('resize', resize);
+
+        window.onload = () => {
+            resize();
+            initParticles();
+            requestAnimationFrame(renderAnim);
+        };
+    </script>
+</body>
+</html>
